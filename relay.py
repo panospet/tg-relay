@@ -2,7 +2,7 @@
 import asyncio
 import logging
 
-from telethon import TelegramClient, events
+from telethon import TelegramClient, events, errors
 
 import config
 
@@ -35,10 +35,13 @@ async def my_event_handler(event):
         if event.chat and event.chat.id == chat_id:
             for relay in relays:
                 logger.info('Sending message from {} to {}'.format(event.chat.id, relay))
-                if config.FORWARD:
-                    await client.forward_messages(relay, event.message)
-                else:
-                    await client.send_message(relay, event.message)
+                try:
+                    if config.FORWARD:
+                        await client.forward_messages(relay, event.message)
+                    else:
+                        await client.send_message(relay, event.message)
+                except errors.MediaEmptyError as mex:
+                    print("exceptionara:", mex.message)
             break
     else:
         for relay in RELAY_MAP.get('default', []):
@@ -47,6 +50,7 @@ async def my_event_handler(event):
                 await client.forward_messages(relay, event.message)
             else:
                 await client.send_message(relay, event.message)
+
 
 loop = asyncio.get_event_loop()
 loop.run_until_complete(setup())
